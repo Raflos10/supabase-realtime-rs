@@ -3,3 +3,6 @@
 # Environment vars
 .env
 env.rs
+
+# temp
+/tests
