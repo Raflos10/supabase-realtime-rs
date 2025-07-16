@@ -13,7 +13,7 @@ use super::{
     system::System,
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "event", content = "payload", rename_all = "snake_case")]
 pub enum Payload {
     #[serde(rename = "phx_join")]

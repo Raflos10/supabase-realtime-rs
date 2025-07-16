@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Broadcast {
     #[serde(rename = "type")]
     pub r#type: String,
     pub event: String,
+    pub payload: Value,
 }
-
-// TODO: payload

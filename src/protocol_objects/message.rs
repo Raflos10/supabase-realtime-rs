@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::payload::Payload;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Message {
     pub topic: String,
     #[serde(flatten)]

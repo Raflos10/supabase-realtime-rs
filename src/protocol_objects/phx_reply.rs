@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", content = "response")]
 pub enum PhxReply {
     #[serde(rename = "error")]
@@ -9,19 +9,19 @@ pub enum PhxReply {
     Ok(PhxResponse),
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ErrorReply {
     pub reason: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PhxResponse {
     #[serde(default)]
     #[serde(rename = "postgres_changes")]
     pub postgres_changes: Vec<ReplyPostgresChanges>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ReplyPostgresChanges {
     pub event: ReplyPostgresChangedEvent,
     pub schema: String,
@@ -32,7 +32,7 @@ pub struct ReplyPostgresChanges {
     pub id: i32,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ReplyPostgresChangedEvent {
     #[serde(rename = "*")]
     All,
