@@ -1,0 +1,122 @@
+use std::sync::Arc;
+use std::time::Duration;
+
+// use chrono::Utc;
+use dotenv::dotenv;
+use serde_json::json;
+use tokio::sync::{Mutex, Notify, Semaphore};
+use tokio::time::timeout;
+
+use supabase_realtime_rs::{
+    channel::RealtimeChannel,
+    client::RealtimeClient,
+    protocol_objects::{Broadcast, BroadcastConfig, JoinConfig, Payload, PresenceConfig},
+    types::{Result, SubscribeState},
+};
+
+const DEFAULT_URL: &str = "http://127.0.0.1:54321";
+const DEFAULT_KEY: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+
+fn get_url() -> String {
+    dotenv().ok();
+    dotenv::var("SUPABASE_URL").unwrap_or(String::from(DEFAULT_URL))
+}
+
+fn get_anon_key() -> String {
+    dotenv().ok();
+    dotenv::var("SUPABASE_ANON_KEY").unwrap_or(String::from(DEFAULT_KEY))
+}
+
+fn create_client() -> Result<RealtimeClient> {
+    RealtimeClient::new(&get_url(), &get_anon_key(), None, None, None, None, None)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const BROADCAST_JOIN_CONFIG: JoinConfig = JoinConfig {
+        broadcast: Some(BroadcastConfig {
+            self_item: false,
+            ack: false,
+        }),
+        presence: Some(PresenceConfig { key: String::new() }),
+        postgres_changes: None,
+        private: false,
+    };
+
+    #[tokio::test]
+    async fn test_broadcast_events() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut client = create_client()?;
+        client.connect().await?;
+        assert!(client.is_connected());
+
+        let mut channel = client.channel("test-broadcast", Some(BROADCAST_JOIN_CONFIG));
+
+        let received_events = Arc::new(Mutex::new(Vec::<Payload>::new()));
+        let semaphore = Arc::new(Semaphore::new(0));
+        let subscribe_notify = Arc::new(Notify::new());
+
+        let events_clone = Arc::clone(&received_events);
+        let semaphore_clone = Arc::clone(&semaphore);
+
+        let broadcast_callback = Box::new(
+            move |_: &mut RealtimeChannel, payload: Payload, _: Option<&str>| {
+                println!("broadcast: {payload:?}");
+                let events = Arc::clone(&events_clone);
+                let sem = Arc::clone(&semaphore_clone);
+                tokio::spawn(async move {
+                    events.lock().await.push(payload);
+                    sem.add_permits(1);
+                });
+            },
+        );
+
+        let notify_clone = Arc::clone(&subscribe_notify);
+        let subscribe_callback = Box::new(move |state_result: Result<SubscribeState>| {
+            if let Ok(state) = state_result {
+                if state == SubscribeState::Subscribed {
+                    notify_clone.notify_one();
+                }
+            }
+        });
+
+        channel.on_broadcast("test-event", broadcast_callback);
+        channel
+            .subscribe(&mut client, Some(subscribe_callback))
+            .await?;
+
+        timeout(Duration::from_secs(5), subscribe_notify.notified()).await?;
+
+        for i in 0..3 {
+            let payload = Payload::Broadcast(Broadcast {
+                event: String::from("test-event"),
+                payload: json!({"message": format!("Event {i}")}),
+            });
+            channel
+                .send_broadcast("test-event", payload.clone())
+                .await?;
+
+            let _ = timeout(Duration::from_secs(5), semaphore.acquire()).await??;
+        }
+
+        let broadcast_events: Vec<Broadcast> = received_events
+            .lock()
+            .await
+            .iter()
+            .flat_map(|e| match e {
+                Payload::Broadcast(broadcast) => Some(broadcast.clone()),
+                _ => None,
+            })
+            .collect();
+
+        assert_eq!(broadcast_events.len(), 3);
+
+        assert_eq!(broadcast_events[0].payload["message"], "Event 1");
+        assert_eq!(broadcast_events[1].payload["message"], "Event 2");
+        assert_eq!(broadcast_events[2].payload["message"], "Event 3");
+
+        client.close().await?;
+        Ok(())
+    }
+}
