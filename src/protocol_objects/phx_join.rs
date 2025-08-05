@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PhxJoin {
     pub config: JoinConfig,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -8,7 +8,7 @@ pub struct PhxJoin {
     pub access_token: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct JoinConfig {
     #[serde(rename = "broadcast")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -19,21 +19,22 @@ pub struct JoinConfig {
     #[serde(rename = "postgres_changes")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub postgres_changes: Option<Vec<JoinPostgresChanges>>,
+    pub private: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BroadcastConfig {
     #[serde(rename = "self")]
     pub self_item: bool,
     pub ack: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PresenceConfig {
     pub key: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct JoinPostgresChanges {
     pub event: JoinPostgresChangedEvent,
     pub schema: String,
@@ -43,8 +44,9 @@ pub struct JoinPostgresChanges {
     pub filter: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub enum JoinPostgresChangedEvent {
+    #[default]
     #[serde(rename = "*")]
     All,
     #[serde(rename = "INSERT")]

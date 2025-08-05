@@ -3,8 +3,8 @@ use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Broadcast {
-    #[serde(rename = "type")]
-    pub r#type: String,
+    // #[serde(rename = "type")]
+    // pub r#type: String,
     pub event: String,
     pub payload: Value,
 }

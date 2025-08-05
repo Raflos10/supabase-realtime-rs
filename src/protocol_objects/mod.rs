@@ -11,6 +11,7 @@ mod postgres_changes;
 mod presence;
 mod system;
 
+pub use broadcast::Broadcast;
 pub(crate) use heartbeat::Heartbeat;
 pub use message::Message;
 pub use payload::Payload;
