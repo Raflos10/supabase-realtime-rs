@@ -63,12 +63,8 @@ mod tests {
         let broadcast_callback = Box::new(
             move |_: &mut RealtimeChannel, payload: Payload, _: Option<&str>| {
                 println!("broadcast: {payload:?}");
-                let events = Arc::clone(&events_clone);
-                let sem = Arc::clone(&semaphore_clone);
-                tokio::spawn(async move {
-                    events.lock().await.push(payload);
-                    sem.add_permits(1);
-                });
+                events_clone.blocking_lock().push(payload);
+                semaphore_clone.add_permits(1);
             },
         );
 
