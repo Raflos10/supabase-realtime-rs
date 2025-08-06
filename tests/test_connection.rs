@@ -60,26 +60,25 @@ mod tests {
         let events_clone = Arc::clone(&received_events);
         let semaphore_clone = Arc::clone(&semaphore);
 
-        let broadcast_callback = Box::new(
+        let broadcast_callback =
             move |_: &mut RealtimeChannel, payload: Payload, _: Option<&str>| {
                 println!("broadcast: {payload:?}");
                 events_clone.blocking_lock().push(payload);
                 semaphore_clone.add_permits(1);
-            },
-        );
+            };
 
         let notify_clone = Arc::clone(&subscribe_notify);
-        let subscribe_callback = Box::new(move |state_result: Result<SubscribeState>| {
+        let subscribe_callback = move |state_result: Result<SubscribeState>| {
             if let Ok(state) = state_result {
                 if state == SubscribeState::Subscribed {
                     notify_clone.notify_one();
                 }
             }
-        });
+        };
 
-        channel.on_broadcast("test-event", broadcast_callback);
+        channel.on_broadcast("test-event", Box::new(broadcast_callback));
         channel
-            .subscribe(&mut client, Some(subscribe_callback))
+            .subscribe(&mut client, Some(Box::new(subscribe_callback)))
             .await?;
 
         timeout(Duration::from_secs(5), subscribe_notify.notified()).await?;
