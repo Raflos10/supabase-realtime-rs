@@ -37,7 +37,7 @@ mod tests {
 
     const BROADCAST_JOIN_CONFIG: JoinConfig = JoinConfig {
         broadcast: Some(BroadcastConfig {
-            self_item: false,
+            self_item: true,
             ack: false,
         }),
         presence: Some(PresenceConfig { key: String::new() }),
@@ -84,7 +84,7 @@ mod tests {
 
         timeout(Duration::from_secs(5), subscribe_notify.notified()).await?;
 
-        for i in 0..3 {
+        for i in 1..4 {
             let payload = Payload::Broadcast(Broadcast {
                 event: String::from("test-event"),
                 payload: json!({"message": format!("Event {i}")}),
