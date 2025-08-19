@@ -46,9 +46,9 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn test_broadcast_events() -> std::result::Result<(), Box<dyn std::error::Error>> {
-        let mut client = create_client()?;
-        client.connect().await?;
+    async fn test_broadcast_events() {
+        let mut client = create_client().expect("Error while creating client.");
+        client.connect().await.expect("Error while connecting to client.");
         assert!(client.is_connected());
 
         let mut channel = client.channel("test-broadcast", Some(BROADCAST_JOIN_CONFIG));
@@ -69,19 +69,21 @@ mod tests {
 
         let notify_clone = Arc::clone(&subscribe_notify);
         let subscribe_callback = move |state_result: Result<SubscribeState>| {
-            if let Ok(state) = state_result {
-                if state == SubscribeState::Subscribed {
-                    notify_clone.notify_one();
-                }
+            if let Ok(state) = state_result
+                && state == SubscribeState::Subscribed
+            {
+                notify_clone.notify_one();
             }
         };
 
         channel.on_broadcast("test-event", Box::new(broadcast_callback));
         channel
             .subscribe(&mut client, Some(Box::new(subscribe_callback)))
-            .await?;
+            .await
+            .expect("Error while subscribing to channel.");
 
-        timeout(Duration::from_secs(5), subscribe_notify.notified()).await?;
+        timeout(Duration::from_secs(5), subscribe_notify.notified())
+            .await.expect("Timeout elapsed while waiting for subscribe response.");
 
         for i in 1..4 {
             let payload = Payload::Broadcast(Broadcast {
@@ -90,9 +92,13 @@ mod tests {
             });
             channel
                 .send_broadcast("test-event", payload.clone())
-                .await?;
+                .await
+                .expect("Error while sending broadcast.");
 
-            let _ = timeout(Duration::from_secs(5), semaphore.acquire()).await??;
+            let _ = timeout(Duration::from_secs(5), semaphore.acquire())
+                .await
+                .expect("Timeout elapsed while waiting for broadcast response.")
+                .unwrap();
         }
 
         let broadcast_events: Vec<Broadcast> = received_events
@@ -111,7 +117,6 @@ mod tests {
         assert_eq!(broadcast_events[1].payload["message"], "Event 2");
         assert_eq!(broadcast_events[2].payload["message"], "Event 3");
 
-        client.close().await?;
-        Ok(())
+        client.close().await.expect("Error disconnecting client.");
     }
 }
