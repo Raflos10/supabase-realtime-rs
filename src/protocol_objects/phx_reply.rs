@@ -14,7 +14,7 @@ pub struct ErrorReply {
     pub reason: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PhxResponse {
     #[serde(default)]
     #[serde(rename = "postgres_changes")]

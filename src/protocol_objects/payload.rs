@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -7,6 +9,7 @@ use super::{
     phx_close::PhxClose,
     phx_error::PhxError,
     phx_join::PhxJoin,
+    phx_leave::PhxLeave,
     phx_reply::PhxReply,
     postgres_changes::PostgresChangesPayload,
     presence::{PresenceDiff, PresenceState},
@@ -18,6 +21,8 @@ use super::{
 pub enum Payload {
     #[serde(rename = "phx_join")]
     PhxJoin(PhxJoin),
+    #[serde(rename = "phx_leave")]
+    PhxLeave(PhxLeave),
     #[serde(rename = "phx_reply")]
     PhxReply(PhxReply),
     #[serde(rename = "phx_close")]
@@ -38,4 +43,23 @@ pub enum Payload {
     System(System),
     #[serde(rename = "postgres_changes")]
     PostgresChanges(PostgresChangesPayload),
+}
+
+impl Display for Payload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Payload::PhxJoin(_) => write!(f, "phx_join"),
+            Payload::PhxLeave(_) => write!(f, "phx_leave"),
+            Payload::PhxReply(_) => write!(f, "phx_reply"),
+            Payload::PhxClose(_) => write!(f, "phx_close"),
+            Payload::PhxError(_) => write!(f, "phx_error"),
+            Payload::Heartbeat(_) => write!(f, "heartbeat"),
+            Payload::AccessToken(_) => write!(f, "access_token"),
+            Payload::Broadcast(_) => write!(f, "broadcast"),
+            Payload::PresenceState(_) => write!(f, "presence_state"),
+            Payload::PresenceDiff(_) => write!(f, "presence_diff"),
+            Payload::System(_) => write!(f, "system"),
+            Payload::PostgresChanges(_) => write!(f, "postgres_changes"),
+        }
+    }
 }
