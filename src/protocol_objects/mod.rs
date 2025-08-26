@@ -19,4 +19,5 @@ pub use payload::Payload;
 pub use phx_close::*;
 pub use phx_error::*;
 pub use phx_join::*;
+pub use phx_leave::*;
 pub use phx_reply::*;
