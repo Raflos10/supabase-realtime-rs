@@ -48,10 +48,16 @@ mod tests {
     #[tokio::test]
     async fn test_broadcast_events() {
         let mut client = create_client().expect("Error while creating client.");
-        client.connect().await.expect("Error while connecting to client.");
+        client
+            .connect()
+            .await
+            .expect("Error while connecting to client.");
         assert!(client.is_connected());
 
-        let mut channel = client.channel("test-broadcast", Some(BROADCAST_JOIN_CONFIG));
+        let topic = String::from("test-broadcast");
+        let mut channel = client
+            .create_channel(&topic, Some(BROADCAST_JOIN_CONFIG))
+            .await;
 
         let received_events = Arc::new(Mutex::new(Vec::<Payload>::new()));
         let semaphore = Arc::new(Semaphore::new(0));
@@ -60,12 +66,11 @@ mod tests {
         let events_clone = Arc::clone(&received_events);
         let semaphore_clone = Arc::clone(&semaphore);
 
-        let broadcast_callback =
-            move |_: &mut RealtimeChannel, payload: Payload, _: Option<&str>| {
-                println!("broadcast: {payload:?}");
-                events_clone.blocking_lock().push(payload);
-                semaphore_clone.add_permits(1);
-            };
+        let broadcast_callback = move |payload: Payload, _: Option<&str>| {
+            println!("broadcast: {payload:?}");
+            events_clone.blocking_lock().push(payload);
+            semaphore_clone.add_permits(1);
+        };
 
         let notify_clone = Arc::clone(&subscribe_notify);
         let subscribe_callback = move |state_result: Result<SubscribeState>| {
@@ -76,22 +81,27 @@ mod tests {
             }
         };
 
-        channel.on_broadcast("test-event", Box::new(broadcast_callback));
+        channel
+            .on_broadcast("test-event", Box::new(broadcast_callback))
+            .await;
+
         channel
             .subscribe(&mut client, Some(Box::new(subscribe_callback)))
             .await
             .expect("Error while subscribing to channel.");
 
         timeout(Duration::from_secs(5), subscribe_notify.notified())
-            .await.expect("Timeout elapsed while waiting for subscribe response.");
+            .await
+            .expect("Timeout elapsed while waiting for subscribe response.");
 
         for i in 1..4 {
             let payload = Payload::Broadcast(Broadcast {
                 event: String::from("test-event"),
                 payload: json!({"message": format!("Event {i}")}),
             });
+
             channel
-                .send_broadcast("test-event", payload.clone())
+                .send_broadcast(&mut client, "test-event", payload)
                 .await
                 .expect("Error while sending broadcast.");
 
