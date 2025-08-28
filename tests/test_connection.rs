@@ -8,7 +8,6 @@ use tokio::sync::{Mutex, Notify, Semaphore};
 use tokio::time::timeout;
 
 use supabase_realtime_rs::{
-    channel::RealtimeChannel,
     client::RealtimeClient,
     protocol_objects::{Broadcast, BroadcastConfig, JoinConfig, Payload, PresenceConfig},
     types::{Result, SubscribeState},
@@ -66,9 +65,11 @@ mod tests {
         let events_clone = Arc::clone(&received_events);
         let semaphore_clone = Arc::clone(&semaphore);
 
-        let broadcast_callback = move |payload: Payload, _: Option<&str>| {
-            println!("broadcast: {payload:?}");
-            events_clone.blocking_lock().push(payload);
+        let broadcast_callback = move |payload: Payload| {
+            events_clone
+                .try_lock()
+                .expect("Failed to get lock on events clone.")
+                .push(payload);
             semaphore_clone.add_permits(1);
         };
 
@@ -105,10 +106,11 @@ mod tests {
                 .await
                 .expect("Error while sending broadcast.");
 
-            let _ = timeout(Duration::from_secs(5), semaphore.acquire())
+            let permit = timeout(Duration::from_secs(5), semaphore.acquire())
                 .await
                 .expect("Timeout elapsed while waiting for broadcast response.")
                 .unwrap();
+            permit.forget();
         }
 
         let broadcast_events: Vec<Broadcast> = received_events
