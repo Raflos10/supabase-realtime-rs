@@ -3,9 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct PhxJoin {
     pub config: JoinConfig,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub access_token: Option<String>,
+    pub access_token: String,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
