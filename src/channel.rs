@@ -291,6 +291,10 @@ impl RealtimeChannel {
         self.push(client, event, payload).await
     }
 
+    pub fn get_topic(&self) -> &str {
+        &self.topic
+    }
+
     async fn rejoin(
         &mut self,
         client: &mut RealtimeClient,
