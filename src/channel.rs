@@ -283,7 +283,7 @@ impl RealtimeChannel {
     }
 
     pub async fn send_broadcast(
-        &mut self,
+        &self,
         client: &mut RealtimeClient,
         event: &str,
         payload: Payload,
