@@ -57,7 +57,7 @@ impl RealtimeClient {
     }
 
     pub async fn create_channel(
-        &mut self,
+        &self,
         topic: &str,
         options: Option<JoinConfig>,
     ) -> RealtimeChannel {
