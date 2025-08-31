@@ -28,7 +28,6 @@ pub enum SubscribeState {
     Subscribed,
     TimedOut,
     Closed,
-    ChannelError,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
