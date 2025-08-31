@@ -41,7 +41,7 @@ impl Push {
 
     pub(crate) async fn resend(
         &mut self,
-        client: &mut RealtimeClient,
+        client: &RealtimeClient,
         topic: &str,
         _ref: &str,
         current_event: &str,
@@ -58,7 +58,7 @@ impl Push {
 
     pub(crate) async fn send(
         &mut self,
-        client: &mut RealtimeClient,
+        client: &RealtimeClient,
         topic: &str,
         _ref: &str,
         current_event: &str,

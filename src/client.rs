@@ -16,7 +16,6 @@ pub struct RealtimeClient {
     url: String,
     api_key: String,
     access_token: String,
-    _ref: u32,
     auto_reconnect: bool,
     max_retries: u32,
     initial_backoff: f32,
@@ -26,6 +25,7 @@ pub struct RealtimeClient {
 
 #[derive(Clone, Default)]
 pub(crate) struct RealtimeClientMutableState {
+    _ref: u32,
     channels: HashMap<String, RealtimeChannel>,
 }
 
@@ -47,7 +47,6 @@ impl RealtimeClient {
             url,
             api_key: String::from(api_key),
             access_token: String::from(api_key),
-            _ref: 0,
             auto_reconnect: auto_reconnect.unwrap_or(true),
             max_retries: max_retries.unwrap_or(5),
             initial_backoff: initial_backoff.unwrap_or(1.0),
@@ -73,6 +72,25 @@ impl RealtimeClient {
             .insert(topic.clone(), channel.clone());
 
         channel
+    }
+
+    pub async fn remove_channel(&mut self, channel: &RealtimeChannel) {
+        let topic = format!("realtime:{}", channel.get_topic());
+
+        let channels = &self.mutable_state.lock().await.channels;
+        let channel = channels.get(&topic);
+
+        if let Some(channel) = channel {
+            channel.unsubscribe(self).await;
+        }
+    }
+
+    pub async fn remove_all_channels(&mut self) {
+        let channels = &self.mutable_state.lock().await.channels;
+
+        for channel in channels.values() {
+            channel.unsubscribe(self).await;
+        }
     }
 
     pub fn is_connected(&self) -> bool {
@@ -171,9 +189,10 @@ impl RealtimeClient {
         }
     }
 
-    pub(crate) fn make_ref(&mut self) -> String {
-        self._ref += 1;
-        self._ref.to_string()
+    pub(crate) async fn make_ref(&self) -> String {
+        let mut state = self.mutable_state.lock().await;
+        state._ref += 1;
+        state._ref.to_string()
     }
 
     pub(crate) fn send(&self, message: Message) -> Result<()> {

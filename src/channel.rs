@@ -201,14 +201,12 @@ impl RealtimeChannel {
             .await;
 
         let (sender, receiver) = channel();
-        let _ref = client.make_ref();
+        let _ref = client.make_ref().await;
         let reply_event_name = get_reply_event_name(&_ref);
 
         {
             let mut mutable_state = self.mutable_state.lock().await;
-            mutable_state
-                .push_senders
-                .insert(reply_event_name.clone(), sender);
+            mutable_state.push_senders.insert(reply_event_name, sender);
         }
 
         self.rejoin(client, &_ref, receiver).await?;
@@ -216,9 +214,35 @@ impl RealtimeChannel {
         Ok(())
     }
 
+    pub(crate) async fn unsubscribe(&self, client: &RealtimeClient) {
+        let mut state = self.mutable_state.lock().await;
+        state.state = ChannelState::Leaving;
+
+        // reset rejoin timer
+
+        let payload = Payload::PhxLeave(PhxLeave);
+        let mut leave_push = Push::new("phx_leave", payload, None);
+        let topic_clone = self.topic.clone();
+        leave_push
+            .register_receive_callback(
+                PushReplyStatus::Ok,
+                Box::new(move |_| println!("Leaving channel {topic_clone}")),
+            )
+            .await;
+
+        let (sender, receiver) = channel();
+        let _ref = client.make_ref().await;
+        let reply_event_name = get_reply_event_name(&_ref);
+        state.push_senders.insert(reply_event_name, sender);
+
+        leave_push
+            .send(client, &self.topic, &_ref, "phx_leave", receiver)
+            .await;
+    }
+
     async fn push(
         &self,
-        client: &mut RealtimeClient,
+        client: &RealtimeClient,
         event: &str,
         payload: Payload,
         // timeout
@@ -233,7 +257,7 @@ impl RealtimeChannel {
         let mut push = Push::new(event, payload, None);
 
         let (sender, receiver) = channel();
-        let _ref = client.make_ref();
+        let _ref = client.make_ref().await;
         let reply_event_name = get_reply_event_name(&_ref);
 
         {
@@ -284,7 +308,7 @@ impl RealtimeChannel {
 
     pub async fn send_broadcast(
         &self,
-        client: &mut RealtimeClient,
+        client: &RealtimeClient,
         event: &str,
         payload: Payload,
     ) -> Result<()> {
