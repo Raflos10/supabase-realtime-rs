@@ -27,7 +27,7 @@ fn get_anon_key() -> String {
 }
 
 fn create_client() -> Result<RealtimeClient> {
-    RealtimeClient::new(&get_url(), &get_anon_key(), None, None, None, None, None)
+    RealtimeClient::new(&get_url(), &get_anon_key(), None, None, None)
 }
 
 #[cfg(test)]
