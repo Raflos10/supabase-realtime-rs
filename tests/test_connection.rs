@@ -138,7 +138,7 @@ mod tests {
         client.connect().await.unwrap();
         assert!(client.is_connected());
 
-        let topic = String::from("test-broadcast");
+        let topic = String::from("test-delayed-broadcast");
         let mut channel = client
             .create_channel(&topic, Some(BROADCAST_JOIN_CONFIG))
             .await;
